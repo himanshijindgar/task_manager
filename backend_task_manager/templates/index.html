@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Task Manager</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Task Manager</h1>
+    <div id="auth-section">
+      <h2>Login</h2>
+      <input id="username" placeholder="Username" value="demo">
+      <input id="password" type="password" placeholder="Password" value="demo123">
+      <button id="login-btn">Login</button>
+      <p id="login-status"></p>
+    </div>
+
+    <div id="app-section" style="display:none;">
+      <h2>Your Tasks</h2>
+      <div class="task-form">
+        <input id="task-title" placeholder="Task title">
+        <input id="task-desc" placeholder="Description">
+        <button id="add-task-btn">Add Task</button>
+      </div>
+      <ul id="task-list"></ul>
+    </div>
+  </div>
+
+<script>
+let token = null;
+
+async function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const res = await fetch("/auth/login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({username, password})
+  });
+  if (!res.ok) {
+    document.getElementById("login-status").innerText = "Login failed";
+    return;
+  }
+  const data = await res.json();
+  token = data.access_token;
+  localStorage.setItem("tm_token", token);
+  document.getElementById("auth-section").style.display = "none";
+  document.getElementById("app-section").style.display = "block";
+  loadTasks();
+}
+
+async function loadTasks() {
+  const res = await fetch("/tasks", {
+    headers: {Authorization: "Bearer " + token}
+  });
+  if (!res.ok) return;
+  const tasks = await res.json();
+  const list = document.getElementById("task-list");
+  list.innerHTML = "";
+  tasks.forEach(t => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <span class="${t.completed ? "done" : ""}">${t.title} - ${t.description || ""}</span>
+      <button data-id="${t.id}" class="toggle">${t.completed ? "Undo" : "Done"}</button>
+      <button data-id="${t.id}" class="delete">Delete</button>
+    `;
+    list.appendChild(li);
+  });
+
+  list.querySelectorAll(".toggle").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-id");
+      await fetch("/tasks/" + id, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({completed: btn.innerText === "Done"})
+      });
+      loadTasks();
+    });
+  });
+
+  list.querySelectorAll(".delete").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-id");
+      await fetch("/tasks/" + id, {
+        method: "DELETE",
+        headers: {Authorization: "Bearer " + token}
+      });
+      loadTasks();
+    });
+  });
+}
+
+async function addTask() {
+  const title = document.getElementById("task-title").value;
+  const description = document.getElementById("task-desc").value;
+  if (!title) return;
+  await fetch("/tasks", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
+    },
+    body: JSON.stringify({title, description})
+  });
+  document.getElementById("task-title").value = "";
+  document.getElementById("task-desc").value = "";
+  loadTasks();
+}
+
+document.getElementById("login-btn").addEventListener("click", login);
+document.getElementById("add-task-btn").addEventListener("click", addTask);
+
+window.addEventListener("load", () => {
+  const saved = localStorage.getItem("tm_token");
+  if (saved) {
+    token = saved;
+    document.getElementById("auth-section").style.display = "none";
+    document.getElementById("app-section").style.display = "block";
+    loadTasks();
+  }
+});
+</script>
+</body>
+</html>
