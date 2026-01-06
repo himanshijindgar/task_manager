@@ -35,6 +35,8 @@ def verify_password(plain: str, hashed: str) -> bool:
     
 
 def get_password_hash(password: str) -> str:
+    if password and len(password.encode("utf-8")) > 72:
+        password = password[:72]
     return pwd_context.hash(password)
 
 
