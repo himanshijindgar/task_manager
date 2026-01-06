@@ -28,8 +28,11 @@ def get_db():
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    # bcrypt only supports up to 72 bytes
+    if plain and len(plain.encode("utf-8")) > 72:
+        plain = plain[:72]
     return pwd_context.verify(plain, hashed)
-
+    
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
