@@ -7,10 +7,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine, Base
 from . import models, schemas, auth
+from .database import SessionLocal
+from .models import User
+from .auth import get_password_hash
 
 Base.metadata.create_all(bind=engine)
 
+def create_demo_user():
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == "demo").first()
+        if not user:
+            demo = User(
+                username="demo",
+                password_hash=get_password_hash("demo123")
+            )
+            db.add(demo)
+            db.commit()
+            print("Demo user created")
+    finally:
+        db.close()
+
 app = FastAPI(title="Task Manager API")
+create_demo_user()
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,7 +41,6 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
 
 def get_db():
     db = SessionLocal()
