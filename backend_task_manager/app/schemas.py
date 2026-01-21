@@ -1,6 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
+class TaskListResponse(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    items: list["TaskOut"]
+    
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -20,8 +26,8 @@ class UserOut(BaseModel):
 
 
 class TaskBase(BaseModel):
-    title: str
-    description: Optional[str] = None
+    title: str = Field(..., min_length=3, max_length=255)
+    description: Optional[str] = Field(None, max_length=1000)
 
 
 class TaskCreate(TaskBase):
@@ -40,3 +46,5 @@ class TaskOut(TaskBase):
 
     class Config:
         orm_mode = True
+
+TaskListResponse.model_rebuild()
