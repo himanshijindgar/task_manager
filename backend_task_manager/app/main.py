@@ -57,6 +57,22 @@ def serve_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@app.post("/auth/signup", response_model=schemas.UserOut)
+def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.username == payload.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    user = models.User(
+        username=payload.username,
+        password_hash=auth.get_password_hash(payload.password)
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 @app.post("/auth/login", response_model=schemas.Token)
 def login(form: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = auth.authenticate_user(db, form.username, form.password)
