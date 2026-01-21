@@ -10,6 +10,8 @@ from . import models, schemas, auth
 from .database import SessionLocal
 from .models import User
 from .auth import get_password_hash
+from fastapi import Query
+from sqlalchemy import asc, desc
 
 Base.metadata.create_all(bind=engine)
 
@@ -78,9 +80,35 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db), current
     return db_task
 
 
-@app.get("/tasks", response_model=list[schemas.TaskOut])
-def list_tasks(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    return db.query(models.Task).filter(models.Task.owner_id == current_user.id).order_by(models.Task.id.desc()).all()
+@app.get("/tasks", response_model=schemas.TaskListResponse)
+def list_tasks(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    completed: bool | None = None,
+    sort: str = Query("newest", pattern="^(newest|oldest)$"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    q = db.query(models.Task).filter(models.Task.owner_id == current_user.id)
+
+    if completed is not None:
+        q = q.filter(models.Task.completed == completed)
+
+    total = q.count()
+
+    if sort == "oldest":
+        q = q.order_by(asc(models.Task.id))
+    else:
+        q = q.order_by(desc(models.Task.id))
+
+    items = q.offset(skip).limit(limit).all()
+
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "items": items,
+    }
 
 
 @app.patch("/tasks/{task_id}", response_model=schemas.TaskOut)
