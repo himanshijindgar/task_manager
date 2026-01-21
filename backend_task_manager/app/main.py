@@ -12,6 +12,8 @@ from .models import User
 from .auth import get_password_hash
 from fastapi import Query
 from sqlalchemy import asc, desc
+from .logger import logger
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -77,7 +79,11 @@ def signup(payload: schemas.SignupRequest, db: Session = Depends(get_db)):
 def login(form: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = auth.authenticate_user(db, form.username, form.password)
     if not user:
+        logger.info(f"Login failed for username={form.username}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    
+    logger.info(f"Login success for username={form.username}")
+
     token = auth.create_access_token({"sub": user.username})
     return schemas.Token(access_token=token, token_type="bearer")
 
@@ -93,6 +99,7 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db), current
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+    logger.info(f"Task created user={current_user.username} task_id={db_task.id}")
     return db_task
 
 
@@ -150,4 +157,5 @@ def delete_task(task_id: int, db: Session = Depends(get_db), current_user: model
         raise HTTPException(status_code=404, detail="Task not found")
     db.delete(db_task)
     db.commit()
+    logger.info(f"Task deleted user={current_user.username} task_id={task_id}")
     return {"detail": "Deleted"}
