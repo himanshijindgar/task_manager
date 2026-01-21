@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from .settings import settings
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -10,9 +11,9 @@ from passlib.context import CryptContext
 from . import models
 from .database import SessionLocal
 
-SECRET_KEY = "CHANGE_THIS_TO_SOMETHING_SECURE"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
