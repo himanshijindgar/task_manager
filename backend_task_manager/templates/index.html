@@ -55,7 +55,8 @@ async function loadTasks() {
     headers: {Authorization: "Bearer " + token}
   });
   if (!res.ok) return;
-  const tasks = await res.json();
+  const data = await res.json();
+  const tasks = data.items;
   const list = document.getElementById("task-list");
   list.innerHTML = "";
   tasks.forEach(t => {
