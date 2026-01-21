@@ -54,6 +54,24 @@ def get_db():
         db.close()
 
 
+def ensure_demo_user():
+    db = SessionLocal()
+    try:
+        existing = db.query(models.User).filter(models.User.username == "demo").first()
+        if not existing:
+            demo_user = models.User(
+                username="demo",
+                password_hash=auth.get_password_hash("demo1234")
+            )
+            db.add(demo_user)
+            db.commit()
+            logger.info("Demo user created")
+    finally:
+        db.close()
+
+ensure_demo_user()
+
+
 @app.get("/", response_class=HTMLResponse)
 def serve_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
