@@ -7,9 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from .database import SessionLocal, engine, Base
 from . import models, schemas, auth
-from .database import SessionLocal
-from .models import User
-from .auth import get_password_hash
 from fastapi import Query
 from sqlalchemy import asc, desc
 from .logger import logger
@@ -18,23 +15,30 @@ from .settings import settings
 
 Base.metadata.create_all(bind=engine)
 
-def create_demo_user():
+def ensure_demo_user():
+    if not settings.CREATE_DEMO_USER:
+        return
+
+    username = settings.DEMO_USERNAME
+    password = settings.DEMO_PASSWORD
+
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.username == "demo").first()
-        if not user:
-            demo = User(
-                username="demo",
-                password_hash=get_password_hash("demo123")
+        existing = db.query(models.User).filter(models.User.username == username).first()
+        if not existing:
+            demo_user = models.User(
+                username=username,
+                password_hash=auth.get_password_hash(password)
             )
-            db.add(demo)
+            db.add(demo_user)
             db.commit()
-            print("Demo user created")
+            logger.info("Demo user created")
     finally:
         db.close()
 
+
 app = FastAPI(title="Task Manager API")
-create_demo_user()
+ensure_demo_user()
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,7 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -54,24 +57,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def ensure_demo_user():
-    db = SessionLocal()
-    try:
-        existing = db.query(models.User).filter(models.User.username == "demo").first()
-        if not existing:
-            demo_user = models.User(
-                username="demo",
-                password_hash=auth.get_password_hash("demo1234")
-            )
-            db.add(demo_user)
-            db.commit()
-            logger.info("Demo user created")
-    finally:
-        db.close()
-
-ensure_demo_user()
 
 
 @app.get("/", response_class=HTMLResponse)
