@@ -13,6 +13,7 @@ from .auth import get_password_hash
 from fastapi import Query
 from sqlalchemy import asc, desc
 from .logger import logger
+from .settings import settings
 
 
 Base.metadata.create_all(bind=engine)
@@ -37,11 +38,12 @@ create_demo_user()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
