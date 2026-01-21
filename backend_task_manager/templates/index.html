@@ -51,14 +51,24 @@ async function login() {
 }
 
 async function loadTasks() {
-  const res = await fetch("/tasks?skip=0&limit=50&sort=newest", {
+  const list = document.getElementById("task-list");
+  list.innerHTML = "";
+
+  const res = await fetch("/tasks?skipi=0&limit=50&sort=newest", {
     headers: {
       "Authorization": `Bearer ${token}`
     }
   });
 
+  if (!res.ok) {
+    const err = await res.text();
+    console.log("Load tasks failed:", err);
+    return;
+  }
+
   const data = await res.json();
-  const tasks = data.items || []; 
+  const tasks = data.items || [];
+
   tasks.forEach(t => {
     const li = document.createElement("li");
     li.innerHTML = `
@@ -76,9 +86,9 @@ async function loadTasks() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + token
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({completed: btn.innerText === "Done"})
+        body: JSON.stringify({ completed: btn.innerText === "Done" })
       });
       loadTasks();
     });
@@ -89,28 +99,39 @@ async function loadTasks() {
       const id = btn.getAttribute("data-id");
       await fetch("/tasks/" + id, {
         method: "DELETE",
-        headers: {Authorization: "Bearer " + token}
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       });
       loadTasks();
     });
   });
 }
 
+
 async function addTask() {
   const title = document.getElementById("task-title").value;
   const description = document.getElementById("task-desc").value;
-  if (!title) return;
-  await fetch("/tasks", {
+
+  const res = await fetch("/tasks", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Bearer " + token
+      "Authorization": `Bearer ${token}`
     },
-    body: JSON.stringify({title, description})
+    body: JSON.stringify({ title, description })
   });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.log("Add task failed:", err);
+    return;
+  }
+
   document.getElementById("task-title").value = "";
   document.getElementById("task-desc").value = "";
-  loadTasks();
+
+  await loadTasks();
 }
 
 document.getElementById("login-btn").addEventListener("click", login);
