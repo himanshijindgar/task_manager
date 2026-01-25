@@ -17,7 +17,10 @@
     </div>
 
     <div id="app-section" style="display:none;">
-      <h2>Your Tasks</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Your Tasks</h2>
+        <button id="logout-btn">Logout</button>
+      </div>
       <div class="task-form">
         <input id="task-title" placeholder="Task title">
         <input id="task-desc" placeholder="Description">
@@ -48,6 +51,16 @@ async function login() {
   document.getElementById("auth-section").style.display = "none";
   document.getElementById("app-section").style.display = "block";
   loadTasks();
+}
+
+function logout() {
+  localStorage.removeItem("tm_token");
+  token = null;
+
+  document.getElementById("app-section").style.display = "none";
+  document.getElementById("auth-section").style.display = "block";
+
+  document.getElementById("login-status").innerText = "";
 }
 
 async function loadTasks() {
@@ -135,6 +148,7 @@ async function addTask() {
 }
 
 document.getElementById("login-btn").addEventListener("click", login);
+document.getElementById("logout-btn").addEventListener("click", logout);
 document.getElementById("add-task-btn").addEventListener("click", addTask);
 
 window.addEventListener("load", () => {
